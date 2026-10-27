@@ -12,7 +12,6 @@ result = graph.invoke(
         "decision": {},
         "policy_decision": {},
         "pattern_analysis": {},
-        "reinspection_count": 0,
     }
 )
 

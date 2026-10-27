@@ -89,7 +89,7 @@ class QualityAssessment(BaseModel):
 class DecisionRecommendation(BaseModel):
     decision: str = Field(
         description=(
-            "Recommended action: ACCEPT, REJECT, REINSPECT, "
+            "Recommended action: ACCEPT, REJECT, "
             "or HUMAN_REVIEW"
         )
     )
@@ -126,7 +126,6 @@ class InspectionState(TypedDict):
     decision: dict
     policy_decision: dict
     pattern_analysis : dict 
-    reinspection_count : dict
 
 
 # ============================================================
@@ -276,7 +275,7 @@ Rules:
    CRITICAL
 5. Clearly distinguish severity from certainty.
 6. Do not make an authoritative ACCEPT or REJECT decision.
-7. If evidence is insufficient, recommend HUMAN_REVIEW or REINSPECTION.
+7. If evidence is insufficient, recommend HUMAN_REVIEW.
 """
 
     assessment = quality_assessor.invoke(prompt)
@@ -313,7 +312,6 @@ and produce a recommendation.
 Possible recommendations:
 ACCEPT
 REJECT
-REINSPECT
 HUMAN_REVIEW
 
 Rules:
@@ -325,8 +323,7 @@ Rules:
 6. Historical repetition does NOT prove a root cause.
 7. Do not treat historical frequency alone as proof
    that the current defect is severe.
-8. If evidence is insufficient or conflicting, prefer
-   REINSPECT or HUMAN_REVIEW.
+8. If evidence is insufficient or conflicting, prefer HUMAN_REVIEW.
 9. This is a recommendation only.
 10. The deterministic Policy Engine remains the
     final authority.
@@ -407,12 +404,12 @@ def policy_engine_node(state: InspectionState):
     if any(confidence < LOW_CONFIDENCE for confidence in confidences):
         return {
             "policy_decision": {
-                "action": "REINSPECT",
+                "action": "HUMAN_REVIEW",
                 "reason": (
                     "At least one detected defect has low confidence. "
-                    "The LLM recommendation was "
-                    f"{recommendation_text}, "
-                    "but deterministic policy requires reinspection."
+                    "Repeating inference on the same image would not add "
+                    "new evidence, so this inspection requires human review. "
+                    f"The LLM recommendation was {recommendation_text}."
                 ),
                 "authority": "deterministic_policy",
             }
@@ -495,21 +492,10 @@ def agentic_path_node(state: InspectionState):
 def route_after_policy(state: InspectionState):
     action = state["policy_decision"]["action"]
 
-    if action == "REINSPECT":
-        if state["reinspection_count"] < 2:
-            return "reinspect"
-
-        return "human_review"
-
     if action == "HUMAN_REVIEW":
         return "human_review"
 
     return "end"
-
-def reinspection_node(state: InspectionState):
-    return {
-        "reinspection_count": state["reinspection_count"] + 1
-    }
 
 # ============================================================
 # 5. BUILD LANGGRAPH
@@ -524,10 +510,7 @@ builder.add_node("quality_assessment", quality_assessment_node)
 builder.add_node("decision", decision_node)
 builder.add_node("policy_engine",policy_engine_node)
 builder.add_node("pattern_analysis" , pattern_analysis_node)
-builder.add_node(
-    "reinspect",
-    reinspection_node
-)
+
 builder.add_node("agentic_path", agentic_path_node)
 
 builder.add_edge(START, "vision")
@@ -560,7 +543,6 @@ builder.add_conditional_edges(
     "policy_engine",
     route_after_policy,
     {
-        "reinspect": "reinspect",
         "human_review": END,
         "end": END,
     },
