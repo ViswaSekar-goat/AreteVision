@@ -1,5 +1,14 @@
 from app.graph import graph
+import uuid 
+from langgraph.types import Command 
 
+thread_id = str(uuid.uuid4())
+
+config = {
+    "configurable": {
+        "thread_id": thread_id
+    }
+}
 
 result = graph.invoke(
     {
@@ -12,8 +21,39 @@ result = graph.invoke(
         "decision": {},
         "policy_decision": {},
         "pattern_analysis": {},
-    }
+    } , 
+    config = config,
 )
+
+if result.get("__interrupt__"):
+
+    print("Human review required!")
+
+    for interruption in result["__interrupt__"]:
+        print(interruption.value)
+
+    # 3. Ask the reviewer for a decision
+    decision = input("Enter ACCEPT or REJECT: ").strip().upper()
+    comments = input("Enter comments: ").strip()
+
+    # 4. Resume the interrupted graph
+    result = graph.invoke(
+        Command(
+            resume={
+                "decision": decision,
+                "comments": comments or None,
+            }
+        ),
+        config=config,
+    )
+
+    print("Review completed.")
+    print(result.get("reviewer_decision"))
+
+else:
+    print("Inspection completed.")
+    print(result.get("policy_decision"))
+
 
 
 print("\n=== INSPECTION ID ===")

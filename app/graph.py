@@ -2,6 +2,8 @@ from typing import TypedDict
 
 from pydantic import BaseModel, Field
 from langgraph.graph import StateGraph, START, END
+from langgraph.types import interrupt , Command 
+from langgraph.checkpoint.memory import InMemorySaver
 from langchain_groq import ChatGroq
 from ultralytics import YOLO
 import os
@@ -11,7 +13,7 @@ import uuid
 load_dotenv()
 
 
-from app.database import get_inspection_history , create_inspection, save_detection, get_all_defect_history , update_inspection_action
+from app.database import get_inspection_history , save_human_review , create_inspection, save_detection, get_all_defect_history , update_inspection_action
 
 
 
@@ -126,6 +128,8 @@ class InspectionState(TypedDict):
     decision: dict
     policy_decision: dict
     pattern_analysis : dict 
+    reviewer_decision : str | None
+    reviewer_comments : str | None
 
 
 # ============================================================
@@ -377,6 +381,52 @@ def route_after_vision(state: InspectionState) -> str:
     return "agentic_path"
 
 
+def human_review_node(state: InspectionState):
+    """
+    Pause for human review, validate the response,
+    and persist the final decision to MySQL.
+    """
+
+    review_request = {
+        "inspection_id": state["inspection_id"],
+        "sample_id": state.get("sample_id"),
+        "image_path": state.get("image_path"),
+        "detections": state.get("detections", []),
+        "policy_decision": state.get("policy_decision", {}),
+        "message": "This inspection requires human review.",
+        "allowed_decisions": ["ACCEPT", "REJECT"],
+    }
+
+    # Pause execution until a reviewer responds.
+    review_response = interrupt(review_request)
+
+    # Validate the reviewer's response.
+    if not isinstance(review_response, dict):
+        raise ValueError("Review response must be a dictionary.")
+
+    reviewer_decision = review_response.get("decision")
+    reviewer_comments = review_response.get("comments")
+
+    if reviewer_decision not in {"ACCEPT", "REJECT"}:
+        raise ValueError("Decision must be ACCEPT or REJECT.")
+
+    if reviewer_comments is not None and not isinstance(
+        reviewer_comments, str
+    ):
+        raise ValueError("Comments must be a string or None.")
+
+    # Persist the completed review to MySQL.
+    save_human_review(
+        inspection_id=state["inspection_id"],
+        reviewer_decision=reviewer_decision,
+        reviewer_comments=reviewer_comments,
+    )
+
+    return {
+        "reviewer_decision": reviewer_decision,
+        "reviewer_comments": reviewer_comments,
+    }
+
 def policy_engine_node(state: InspectionState):
     detections = state["detections"]
     recommendation = state.get("decision", {})
@@ -523,6 +573,7 @@ builder.add_node("policy_engine",policy_engine_node)
 builder.add_node("pattern_analysis" , pattern_analysis_node)
 builder.add_node("agentic_path", agentic_path_node)
 builder.add_node("persist_policy_decision",persist_policy_decision_node)
+builder.add_node("human_review", human_review_node)
 builder.add_edge(START, "vision")
 
 # Route each inspection after YOLO
@@ -554,13 +605,20 @@ builder.add_edge(
     "persist_policy_decision",
 )
 
-builder.add_edge(
+
+builder.add_conditional_edges(
     "persist_policy_decision",
-    END,
+    route_after_policy,
+    {
+        "human_review": "human_review",
+        "end": END,
+    },
 )
 
-graph = builder.compile()
+builder.add_edge("human_review", END)
 
+checkpointer = InMemorySaver()
 
-# Compile graph
-graph = builder.compile()
+graph = builder.compile(
+    checkpointer=checkpointer
+)

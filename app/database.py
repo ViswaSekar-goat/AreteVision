@@ -190,3 +190,74 @@ def get_inspection_history():
     connection.close()
 
     return results
+
+def save_human_review(
+    inspection_id: str,
+    reviewer_decision: str,
+    reviewer_comments: str | None = None,
+):
+    """
+    Save a human review and finalize the inspection.
+
+    Only inspections currently awaiting review can be updated.
+    """
+
+    allowed_decisions = {"ACCEPT", "REJECT"}
+
+    if reviewer_decision not in allowed_decisions:
+        raise ValueError(
+            f"Invalid reviewer decision: {reviewer_decision}. "
+            f"Expected one of {allowed_decisions}."
+        )
+
+    connection = None
+    cursor = None
+
+    try:
+        # Use the SAME connection-creation code as your
+        # existing update_inspection_action() function.
+        connection = get_connection()
+        cursor = connection.cursor()
+
+        query = """
+            UPDATE inspections
+            SET
+                final_action = %s,
+                review_status = 'REVIEWED',
+                reviewer_decision = %s,
+                reviewer_comments = %s,
+                reviewed_at = CURRENT_TIMESTAMP
+            WHERE
+                inspection_id = %s
+                AND review_status = 'PENDING'
+        """
+
+        cursor.execute(
+            query,
+            (
+                reviewer_decision,
+                reviewer_decision,
+                reviewer_comments,
+                inspection_id,
+            ),
+        )
+
+        if cursor.rowcount != 1:
+            raise ValueError(
+                f"Inspection {inspection_id} was not updated. "
+                "It may not exist or may not be awaiting review."
+            )
+
+        connection.commit()
+
+    except Exception:
+        if connection is not None:
+            connection.rollback()
+        raise
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None:
+            connection.close()
