@@ -20,3 +20,6 @@ env/
 .DS_Store
 
 dataset_analysis_outputs
+
+todo
+test.py

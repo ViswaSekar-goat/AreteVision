@@ -1,0 +1,20 @@
+
+# Computer Vision and YOLO
+ultralytics
+
+# Agentic AI and workflow orchestration
+langgraph
+langchain-groq
+
+# Data validation
+pydantic
+
+# Environment variables
+python-dotenv
+
+# MySQL database
+mysql-connector-python
+
+# Analytics dashboard
+streamlit
+plotly

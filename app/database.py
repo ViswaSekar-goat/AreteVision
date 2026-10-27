@@ -261,3 +261,226 @@ def save_human_review(
 
         if connection is not None:
             connection.close()
+
+
+def get_inspection_summary():
+    """
+    Return overall inspection and human-review statistics.
+    Each inspection is counted exactly once.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        query = """
+            SELECT
+                COUNT(*) AS total_inspections,
+
+                SUM(
+                    CASE
+                        WHEN final_action = 'ACCEPT'
+                        THEN 1 ELSE 0
+                    END
+                ) AS accepted_inspections,
+
+                SUM(
+                    CASE
+                        WHEN final_action = 'REJECT'
+                        THEN 1 ELSE 0
+                    END
+                ) AS rejected_inspections,
+
+                SUM(
+                    CASE
+                        WHEN final_action = 'HUMAN_REVIEW'
+                        THEN 1 ELSE 0
+                    END
+                ) AS inspections_sent_for_review,
+
+                SUM(
+                    CASE
+                        WHEN review_status = 'PENDING'
+                        THEN 1 ELSE 0
+                    END
+                ) AS pending_reviews,
+
+                SUM(
+                    CASE
+                        WHEN review_status = 'REVIEWED'
+                        THEN 1 ELSE 0
+                    END
+                ) AS completed_reviews
+
+            FROM inspections
+        """
+
+        cursor.execute(query)
+        result = cursor.fetchone()
+
+        # SQL aggregate results can be None when the table is empty.
+        for key, value in result.items():
+            if value is None:
+                result[key] = 0
+
+        return result
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None:
+            connection.close()
+
+
+def get_defect_analytics():
+    """
+    Summarize detections by defect class.
+    Returns detection counts and confidence statistics.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        query = """
+            SELECT
+                class_name,
+                COUNT(*) AS detection_count,
+                ROUND(AVG(confidence), 4) AS average_confidence,
+                ROUND(MIN(confidence), 4) AS minimum_confidence,
+                ROUND(MAX(confidence), 4) AS maximum_confidence
+
+            FROM detections
+
+            GROUP BY class_name
+
+            ORDER BY detection_count DESC
+        """
+
+        cursor.execute(query)
+        return cursor.fetchall()
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None:
+            connection.close()
+
+def get_review_analytics():
+    """
+    Summarize human-review outcomes and reviewer decisions.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        query = """
+            SELECT
+                review_status,
+                reviewer_decision,
+                COUNT(*) AS inspection_count
+
+            FROM inspections
+
+            WHERE review_status IN ('PENDING', 'REVIEWED')
+
+            GROUP BY review_status, reviewer_decision
+
+            ORDER BY review_status, reviewer_decision
+        """
+
+        cursor.execute(query)
+        return cursor.fetchall()
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None:
+            connection.close()
+
+
+def get_inspection_trends():
+    """
+    Return daily inspection counts grouped by final action.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        query = """
+            SELECT
+                DATE(created_at) AS inspection_date,
+                final_action,
+                COUNT(*) AS inspection_count
+
+            FROM inspections
+
+            GROUP BY DATE(created_at), final_action
+
+            ORDER BY inspection_date ASC, final_action
+        """
+
+        cursor.execute(query)
+        return cursor.fetchall()
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None:
+            connection.close()
+
+
+def get_detections_for_inspection(inspection_id: str):
+    """
+    Retrieve all detections belonging to one inspection.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        query = """
+            SELECT
+                detection_id,
+                class_name,
+                confidence,
+                x1,
+                y1,
+                x2,
+                y2
+            FROM detections
+            WHERE inspection_id = %s
+            ORDER BY detection_id
+        """
+
+        cursor.execute(query, (inspection_id,))
+
+        return cursor.fetchall()
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None:
+            connection.close()
