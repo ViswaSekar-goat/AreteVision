@@ -3,7 +3,6 @@ from typing import TypedDict
 from pydantic import BaseModel, Field
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import interrupt , Command 
-from langgraph.checkpoint.memory import InMemorySaver
 from langchain_groq import ChatGroq
 from ultralytics import YOLO
 import os
@@ -123,6 +122,7 @@ class InspectionState(TypedDict):
     detections: list[Detection]
     inspection_history: list[dict]
     inspection_id : str 
+    thread_id : str
     defect_analysis: dict
     quality_assessment: dict
     decision: dict
@@ -130,6 +130,7 @@ class InspectionState(TypedDict):
     pattern_analysis : dict 
     reviewer_decision : str | None
     reviewer_comments : str | None
+    
 
 
 # ============================================================
@@ -139,7 +140,7 @@ class InspectionState(TypedDict):
 
 def vision_node(state: InspectionState):
     image_path = state["image_path"]
-
+    thread_id = state["thread_id"]
     inspection_id = str(uuid.uuid4())
 
     sample_id = os.path.splitext(
@@ -156,6 +157,7 @@ def vision_node(state: InspectionState):
 
     create_inspection(
         inspection_id=inspection_id,
+        thread_id = thread_id,
         sample_id=sample_id,
         image_path=image_path,
     )
@@ -196,6 +198,7 @@ def vision_node(state: InspectionState):
     return {
         "detections": detections,
         "inspection_id": inspection_id,
+        "thread_id" : thread_id , 
         "inspection_history": inspection_history,
     }
 
@@ -617,8 +620,11 @@ builder.add_conditional_edges(
 
 builder.add_edge("human_review", END)
 
-checkpointer = InMemorySaver()
+from app.database import get_checkpoint_connection
+from langgraph.checkpoint.mysql.pymysql import PyMySQLSaver
 
-graph = builder.compile(
-    checkpointer=checkpointer
-)
+checkpoint_connection = get_checkpoint_connection()
+checkpointer = PyMySQLSaver(checkpoint_connection)
+checkpointer.setup()
+
+graph = builder.compile(checkpointer=checkpointer)

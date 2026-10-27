@@ -5,6 +5,7 @@ USE forgesight;
 CREATE TABLE inspections (
     inspection_id CHAR(36) PRIMARY KEY , 
     sample_id VARCHAR(100) NOT NULL , 
+    thread_id VARCHAR(100) ,
     image_path VARCHAR(500) NOT NULL , 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP , 
     final_action VARCHAR(30),

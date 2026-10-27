@@ -49,7 +49,7 @@ def update_inspection_action(
         cursor.close()
         connection.close()
 
-def create_inspection(inspection_id : str , sample_id : str , image_path : str):
+def create_inspection(inspection_id : str , thread_id : str , sample_id : str , image_path : str):
 
     connection = get_connection()
     cursor = connection.cursor()
@@ -58,16 +58,17 @@ def create_inspection(inspection_id : str , sample_id : str , image_path : str):
 
     INSERT INTO inspections (
         inspection_id,
+        thread_id,
         sample_id,
         image_path
     )
 
-    VALUES(%s , %s , %s)
+    VALUES(%s , %s , %s , %s)
 
     """
 
     cursor.execute(
-        query , (inspection_id , sample_id , image_path) ,
+        query , (inspection_id ,thread_id , sample_id , image_path) ,
     )
 
     connection.commit()
@@ -484,3 +485,39 @@ def get_detections_for_inspection(inspection_id: str):
 
         if connection is not None:
             connection.close()
+
+
+# ============================ pymysql =====================================================
+
+
+
+def get_checkpoint_connection():
+    import pymysql
+
+    return pymysql.connect(
+        host="localhost",
+        user="forgesight_admin",
+        password="admin",
+        database="forgesight",
+        autocommit=True,
+    )
+
+
+
+def get_thread_id_for_inspection(inspection_id: str):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    query = """
+        SELECT thread_id
+        FROM inspections
+        WHERE inspection_id = %s
+    """
+
+    cursor.execute(query, (inspection_id,))
+    result = cursor.fetchone()
+
+    cursor.close()
+    connection.close()
+
+    return result[0] if result else None

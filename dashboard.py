@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.express as px
-
+from langgraph.types import Command
+from app.graph import graph
 from app.database import (
     get_inspection_summary,
     get_defect_analytics,
@@ -8,6 +9,7 @@ from app.database import (
     get_inspection_trends,
     get_inspection_history,
     get_detections_for_inspection,
+    get_thread_id_for_inspection,
 )
 
 
@@ -17,11 +19,11 @@ from app.database import (
 
 st.set_page_config(
     page_title="ForgeSight | Quality Analytics",
-    page_icon="🏭",
+    page_icon="🚀",
     layout="wide",
 )
 
-st.title("🏭 ForgeSight")
+st.title("🚀 ForgeSight")
 st.subheader("Industrial Visual Inspection & Quality Analytics")
 
 st.caption(
@@ -172,39 +174,6 @@ else:
         "Run an inspection to populate defect analytics."
     )
 
-
-# --------------------------------------------------
-# 6. Inspection trends
-# --------------------------------------------------
-
-st.divider()
-st.header("Inspection Trends")
-
-if trend_data:
-    import pandas as pd
-
-    trend_df = pd.DataFrame(trend_data)
-
-    fig_trends = px.line(
-        trend_df,
-        x="inspection_date",
-        y="inspection_count",
-        color="final_action",
-        markers=True,
-        title="Daily Inspection Decisions",
-        labels={
-            "inspection_date": "Date",
-            "inspection_count": "Number of Inspections",
-            "final_action": "Decision",
-        },
-    )
-
-    st.plotly_chart(fig_trends, use_container_width=True)
-
-else:
-    st.info("No inspection trend data is available yet.")
-
-
 # --------------------------------------------------
 # 7. Human-review analytics
 # --------------------------------------------------
@@ -298,4 +267,88 @@ else:
                 st.dataframe(detections, use_container_width=True)
             else:
                 st.info("No detections recorded for this inspection.")
+
+            st.divider()
+            st.subheader("Human Review")
+
+            comments = st.text_area(
+                "Reviewer comments",
+                key=f"comments_{inspection['inspection_id']}",
+            )
+
+            col_accept, col_reject = st.columns(2)
+
+            with col_accept:
+                if st.button(
+                    "Accept",
+                    key=f"accept_{inspection['inspection_id']}",
+                ):
+                    thread_id = get_thread_id_for_inspection(
+                        inspection["inspection_id"]
+                    )
+
+                    if not thread_id:
+                        st.error("Workflow thread ID not found.")
+                    else:
+                        config = {
+                            "configurable": {
+                                "thread_id": thread_id
+                            }
+                        }
+
+                        try:
+                            graph.invoke(
+                                Command(
+                                    resume={
+                                        "decision": "ACCEPT",
+                                        "comments": comments or None,
+                                    }
+                                ),
+                                config=config,
+                            )
+
+                            st.success("Inspection accepted.")
+                            st.rerun()
+
+                        except Exception as error:
+                            st.error(
+                                f"Failed to accept inspection: {error}"
+                            )
+
+            with col_reject:
+                if st.button(
+                    "Reject",
+                    key=f"reject_{inspection['inspection_id']}",
+                ):
+                    thread_id = get_thread_id_for_inspection(
+                        inspection["inspection_id"]
+                    )
+
+                    if not thread_id:
+                        st.error("Workflow thread ID not found.")
+                    else:
+                        config = {
+                            "configurable": {
+                                "thread_id": thread_id
+                            }
+                        }
+
+                        try:
+                            graph.invoke(
+                                Command(
+                                    resume={
+                                        "decision": "REJECT",
+                                        "comments": comments or None,
+                                    }
+                                ),
+                                config=config,
+                            )
+
+                            st.success("Inspection rejected.")
+                            st.rerun()
+
+                        except Exception as error:
+                            st.error(
+                                f"Failed to reject inspection: {error}"
+                            )
 

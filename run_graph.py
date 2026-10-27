@@ -16,6 +16,7 @@ result = graph.invoke(
         "detections": [],
         "inspection_history": [],
         "inspection_id": "",
+        "thread_id" : thread_id , 
         "defect_analysis": {},
         "quality_assessment": {},
         "decision": {},
@@ -25,30 +26,13 @@ result = graph.invoke(
     config = config,
 )
 
+
 if result.get("__interrupt__"):
-
     print("Human review required!")
-
-    for interruption in result["__interrupt__"]:
-        print(interruption.value)
-
-    # 3. Ask the reviewer for a decision
-    decision = input("Enter ACCEPT or REJECT: ").strip().upper()
-    comments = input("Enter comments: ").strip()
-
-    # 4. Resume the interrupted graph
-    result = graph.invoke(
-        Command(
-            resume={
-                "decision": decision,
-                "comments": comments or None,
-            }
-        ),
-        config=config,
-    )
-
-    print("Review completed.")
-    print(result.get("reviewer_decision"))
+    print("Inspection is paused and saved in MySQL.")
+    print("Inspection ID:", result["inspection_id"])
+    print("Thread ID:", thread_id)
+    print("Open the ForgeSight dashboard to review this inspection.")
 
 else:
     print("Inspection completed.")
