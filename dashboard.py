@@ -18,12 +18,12 @@ from app.database import (
 # --------------------------------------------------
 
 st.set_page_config(
-    page_title="ForgeSight | Quality Analytics",
+    page_title="AreteVision | Quality Analytics",
     page_icon="🚀",
     layout="wide",
 )
 
-st.title("🚀 ForgeSight")
+st.title("🚀 AreteVision")
 st.subheader("Industrial Visual Inspection & Quality Analytics")
 
 st.caption(
@@ -220,7 +220,7 @@ else:
 
 st.divider()
 st.caption(
-    "ForgeSight | YOLO-based defect detection, "
+    "AreteVision | YOLO-based defect detection, "
     "agentic inspection, and human-in-the-loop quality control"
 )
 

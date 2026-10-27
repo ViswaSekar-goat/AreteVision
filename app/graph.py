@@ -21,7 +21,7 @@ from app.database import get_inspection_history , save_human_review , create_ins
 # ============================================================
 
 # Our fine-tuned industrial defect detector
-model = YOLO("models/forgeSight_yolo.pt")
+model = YOLO("models/AreteVision_yolo.pt")
 
 
 # Groq LLM used by the Defect Analysis Agent
@@ -220,7 +220,7 @@ def defect_analysis_node(state: InspectionState):
     """
 
     prompt = f"""
-You are the Defect Analysis Agent in ForgeSight,
+You are the Defect Analysis Agent in AreteVision,
 an industrial visual inspection system.
 
 A YOLO computer vision model inspected a component and produced
@@ -262,7 +262,7 @@ quality_assessor = llm.with_structured_output(QualityAssessment)
 def quality_assessment_node(state: InspectionState):
 
     prompt = f"""
-You are the Quality Assessment Agent in ForgeSight,
+You are the Quality Assessment Agent in AreteVision,
 an industrial visual inspection system.
 
 YOLO detections:
@@ -298,7 +298,7 @@ decision_maker = llm.with_structured_output(
 
 def decision_node(state: InspectionState):
     prompt = f"""
-You are the Decision Agent in ForgeSight,
+You are the Decision Agent in AreteVision,
 an industrial visual inspection system.
 
 YOLO detections:
@@ -513,7 +513,7 @@ def pattern_analysis_node(state: InspectionState):
     history = get_all_defect_history()
 
     prompt = f"""
-You are the Pattern Analysis Agent in ForgeSight,
+You are the Pattern Analysis Agent in AreteVision,
 an industrial visual inspection system.
 
 Current YOLO detections:

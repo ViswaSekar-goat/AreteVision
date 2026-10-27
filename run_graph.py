@@ -32,7 +32,7 @@ if result.get("__interrupt__"):
     print("Inspection is paused and saved in MySQL.")
     print("Inspection ID:", result["inspection_id"])
     print("Thread ID:", thread_id)
-    print("Open the ForgeSight dashboard to review this inspection.")
+    print("Open the AreteVision dashboard to review this inspection.")
 
 else:
     print("Inspection completed.")

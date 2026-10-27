@@ -3,14 +3,14 @@ command for running analyze_dataset.py
 
 python analyze_dataset.py     
 --dataset data/NEU-DET/validation/images     
---model models/forgeSight_yolo.pt     
+--model models/AreteVision_yolo.pt     
 --output outputs/confidence_analysis     
 --samples-per-category 10     
 --device 0
 
-Dataset: /home/ghost/ForgeSight/data/NEU-DET/validation/images
-Model:   /home/ghost/ForgeSight/models/forgeSight_yolo.pt
+Dataset: /home/ghost/AreteVision/data/NEU-DET/validation/images
+Model:   /home/ghost/AreteVision/models/AreteVision_yolo.pt
 Images:  360
-Output:  /home/ghost/ForgeSight/dataset_analysis_outputs
+Output:  /home/ghost/AreteVision/dataset_analysis_outputs
 
-command to execute : python analyze_dataset.py --dataset data/NEU-DET/validation/images --model models/forgeSight_yolo.pt --output /home/ghost/ForgeSight/dataset_analysis_outputs --samples-per-category 10 --device 0
+command to execute : python analyze_dataset.py --dataset data/NEU-DET/validation/images --model models/AreteVision_yolo.pt --output /home/ghost/AreteVision/dataset_analysis_outputs --samples-per-category 10 --device 0

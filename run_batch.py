@@ -53,7 +53,7 @@ def find_images(folder: Path) -> list[Path]:
 # --------------------------------------------------
 
 def inspect_image(image_path: Path, index: int, total: int):
-    """Run the existing ForgeSight graph for one image."""
+    """Run the existing AreteVision graph for one image."""
 
     # Every image gets its own workflow thread.
     thread_id = str(uuid.uuid4())
@@ -114,7 +114,7 @@ def inspect_image(image_path: Path, index: int, total: int):
             print("Status: PENDING HUMAN REVIEW")
             print(f"Inspection ID: {inspection_id}")
             print(f"Thread ID: {thread_id}")
-            print("Review this inspection in the ForgeSight dashboard.")
+            print("Review this inspection in the AreteVision dashboard.")
 
             return {
                 "image": str(image_path),
@@ -160,7 +160,7 @@ def inspect_image(image_path: Path, index: int, total: int):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run ForgeSight on every image in a folder."
+        description="Run AreteVision on every image in a folder."
     )
 
     parser.add_argument(
@@ -174,7 +174,7 @@ def main():
 
     image_folder = args.folder.resolve()
 
-    print("\nForgeSight Batch Inspection")
+    print("\nAreteVision Batch Inspection")
     print(f"Dataset folder: {image_folder}")
 
     images = find_images(image_folder)
@@ -239,7 +239,7 @@ def main():
             if result["status"] == "ERROR":
                 print(f"- {result['image']}: {result['error']}")
 
-    print("\nOpen the ForgeSight dashboard to review pending inspections.")
+    print("\nOpen the AreteVision dashboard to review pending inspections.")
 
 
 if __name__ == "__main__":

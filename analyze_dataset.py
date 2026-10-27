@@ -60,13 +60,13 @@ def classify_image(detections):
 
 
 # ============================================================
-# 3. SIMULATE THE CURRENT FORGESIGHT ROUTER AND POLICY
+# 3. SIMULATE THE CURRENT AreteVision ROUTER AND POLICY
 # ============================================================
 
-def simulate_forgesight_decision(detections):
+def simulate_AreteVision_decision(detections):
     """
     Mirror the routing and policy rules currently discussed
-    for ForgeSight.
+    for AreteVision.
 
     This does not execute LangGraph or modify MySQL.
     """
@@ -149,14 +149,14 @@ def main():
 
     parser = argparse.ArgumentParser(
         description=(
-            "Run ForgeSight YOLO over a dataset and collect "
+            "Run AreteVision YOLO over a dataset and collect "
             "representative images by detection confidence."
         )
     )
 
     parser.add_argument(
         "--model",
-        default="models/forgeSight_yolo.pt",
+        default="models/AreteVision_yolo.pt",
         help="Path to trained YOLO weights.",
     )
 
@@ -295,7 +295,7 @@ def main():
         detections = extract_detections(result)
 
         category = classify_image(detections)
-        route, action = simulate_forgesight_decision(detections)
+        route, action = simulate_AreteVision_decision(detections)
 
         counts[category] += 1
 
@@ -384,7 +384,7 @@ def main():
     # --------------------------------------------------------
 
     print("\n" + "=" * 60)
-    print("FORGESIGHT DATASET CONFIDENCE ANALYSIS")
+    print("AreteVision DATASET CONFIDENCE ANALYSIS")
     print("=" * 60)
 
     print(f"Total images analysed: {len(images)}\n")

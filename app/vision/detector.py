@@ -1,7 +1,7 @@
 from ultralytics import YOLO
 
 
-model = YOLO("models/forgeSight_yolo.pt")
+model = YOLO("models/AreteVision_yolo.pt")
 
 
 def detect(image_path: str):
