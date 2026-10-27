@@ -345,10 +345,48 @@ Return a technically defensible recommendation.
 LOW_CONFIDENCE = 0.50
 HIGH_CONFIDENCE = 0.75
 
+def route_after_vision(state: InspectionState) -> str:
+    """
+    Decide whether an inspection needs LLM reasoning.
+
+    Fast path:
+        No detections, or all detections have high confidence.
+
+    Agentic path:
+        Any detection has uncertain or low confidence.
+    """
+
+    detections = state["detections"]
+
+    # No detections: bypass LLM reasoning.
+    # The policy engine will determine the next action.
+    if not detections:
+        return "fast_path"
+
+    confidences = [
+        detection["confidence"]
+        for detection in detections
+    ]
+
+    # Straightforward visual evidence:
+    # every detection meets the high-confidence threshold.
+    if all(
+        confidence >= HIGH_CONFIDENCE
+        for confidence in confidences
+    ):
+        return "fast_path"
+
+    # Uncertain or conflicting evidence requires reasoning.
+    return "agentic_path"
+
 
 def policy_engine_node(state: InspectionState):
     detections = state["detections"]
-    recommendation = state["decision"]
+    recommendation = state.get("decision", {})
+    recommendation_text = recommendation.get(
+        "decision",
+        "SKIPPED — fast path",
+    )
 
     # No detected defects
     if not detections:
@@ -373,7 +411,7 @@ def policy_engine_node(state: InspectionState):
                 "reason": (
                     "At least one detected defect has low confidence. "
                     "The LLM recommendation was "
-                    f"{recommendation['decision']}, "
+                    f"{recommendation_text}, "
                     "but deterministic policy requires reinspection."
                 ),
                 "authority": "deterministic_policy",
@@ -388,7 +426,7 @@ def policy_engine_node(state: InspectionState):
                 "reason": (
                     "At least one defect has high-confidence visual evidence. "
                     "The LLM recommendation was "
-                    f"{recommendation['decision']}, "
+                    f"{recommendation_text}, "
                     "but deterministic policy requires rejection."
                 ),
                 "authority": "deterministic_policy",
@@ -402,7 +440,7 @@ def policy_engine_node(state: InspectionState):
             "reason": (
                 "Defect evidence exists but does not meet the "
                 "deterministic confidence threshold. "
-                f"LLM recommendation was {recommendation['decision']}."
+                f"LLM recommendation was {recommendation_text}."
             ),
             "authority": "deterministic_policy",
         }
@@ -445,6 +483,15 @@ Rules:
         "pattern_analysis": analysis.model_dump()
     }
 
+
+def agentic_path_node(state: InspectionState):
+    """
+    Entry point for inspections that need LLM reasoning.
+
+    The parallel agent nodes will perform the actual analysis.
+    """
+    return {}
+
 def route_after_policy(state: InspectionState):
     action = state["policy_decision"]["action"]
 
@@ -481,18 +528,34 @@ builder.add_node(
     "reinspect",
     reinspection_node
 )
+builder.add_node("agentic_path", agentic_path_node)
 
 builder.add_edge(START, "vision")
 
-builder.add_edge("vision", "defect_analysis")
-builder.add_edge("vision", "quality_assessment")
-builder.add_edge("vision", "pattern_analysis")
+# Route each inspection after YOLO
+builder.add_conditional_edges(
+    "vision",
+    route_after_vision,
+    {
+        "fast_path": "policy_engine",
+        "agentic_path": "agentic_path",
+    },
+)
 
+# Agentic path: run the three analysis agents in parallel
+builder.add_edge("agentic_path", "defect_analysis")
+builder.add_edge("agentic_path", "quality_assessment")
+builder.add_edge("agentic_path", "pattern_analysis")
+
+# Combine their results
 builder.add_edge("defect_analysis", "decision")
 builder.add_edge("quality_assessment", "decision")
-builder.add_edge("pattern_analysis" , "decision")
+builder.add_edge("pattern_analysis", "decision")
 
+# Apply the deterministic policy
 builder.add_edge("decision", "policy_engine")
+
+# Route the policy outcome
 builder.add_conditional_edges(
     "policy_engine",
     route_after_policy,
