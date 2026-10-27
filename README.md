@@ -725,8 +725,3 @@ Before making the repository public:
 Computer Vision · Agentic AI · Intelligent Industrial Automation
 
 ------------------------------------------------------------------------
-
-::: {align="center"}
-**AreteVision --- An orchestrated, persistent, human-reviewable
-inspection workflow.**
-:::
