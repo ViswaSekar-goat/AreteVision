@@ -7,7 +7,12 @@ CREATE TABLE inspections (
     sample_id VARCHAR(100) NOT NULL , 
     image_path VARCHAR(500) NOT NULL , 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP , 
-    final_action VARCHAR(30)
+    final_action VARCHAR(30),
+
+    review_status VARCHAR(20) NOT NULL DEFAULT 'NOT_REQUIRED',
+    reviewer_decision VARCHAR(30),
+    reviewer_comments TEXT,
+    reviewed_at TIMESTAMP NULL
 );
 
 CREATE TABLE detections (

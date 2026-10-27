@@ -11,7 +11,7 @@ import uuid
 load_dotenv()
 
 
-from app.database import get_inspection_history , create_inspection, save_detection , create_inspection, save_detection, get_all_defect_history
+from app.database import get_inspection_history , create_inspection, save_detection, get_all_defect_history , update_inspection_action
 
 
 
@@ -443,6 +443,17 @@ def policy_engine_node(state: InspectionState):
         }
     }
 
+def persist_policy_decision_node(state: InspectionState):
+    inspection_id = state["inspection_id"]
+    action = state["policy_decision"]["action"]
+
+    update_inspection_action(
+        inspection_id=inspection_id,
+        action=action,
+    )
+
+    return {}
+
 
 pattern_analyzer = llm.with_structured_output(PatternAnalysis)
 def pattern_analysis_node(state: InspectionState):
@@ -510,9 +521,8 @@ builder.add_node("quality_assessment", quality_assessment_node)
 builder.add_node("decision", decision_node)
 builder.add_node("policy_engine",policy_engine_node)
 builder.add_node("pattern_analysis" , pattern_analysis_node)
-
 builder.add_node("agentic_path", agentic_path_node)
-
+builder.add_node("persist_policy_decision",persist_policy_decision_node)
 builder.add_edge(START, "vision")
 
 # Route each inspection after YOLO
@@ -539,13 +549,14 @@ builder.add_edge("pattern_analysis", "decision")
 builder.add_edge("decision", "policy_engine")
 
 # Route the policy outcome
-builder.add_conditional_edges(
+builder.add_edge(
     "policy_engine",
-    route_after_policy,
-    {
-        "human_review": END,
-        "end": END,
-    },
+    "persist_policy_decision",
+)
+
+builder.add_edge(
+    "persist_policy_decision",
+    END,
 )
 
 graph = builder.compile()

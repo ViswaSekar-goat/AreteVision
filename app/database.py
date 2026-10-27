@@ -9,6 +9,45 @@ def get_connection():
         database="forgesight",
     )
 
+def update_inspection_action(
+    inspection_id: str,
+    action: str,
+):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    if action == "HUMAN_REVIEW":
+        review_status = "PENDING"
+    else:
+        review_status = "NOT_REQUIRED"
+
+    query = """
+        UPDATE inspections
+        SET final_action = %s,
+            review_status = %s
+        WHERE inspection_id = %s
+    """
+
+    try:
+        cursor.execute(
+            query,
+            (action, review_status, inspection_id),
+        )
+
+        if cursor.rowcount != 1:
+            raise ValueError(
+                f"Expected one inspection record for {inspection_id}"
+            )
+
+        connection.commit()
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        cursor.close()
+        connection.close()
 
 def create_inspection(inspection_id : str , sample_id : str , image_path : str):
 
@@ -134,7 +173,11 @@ def get_inspection_history():
             sample_id,
             image_path,
             created_at,
-            final_action
+            final_action,
+            review_status,
+            reviewer_decision,
+            reviewer_comments,
+            reviewed_at
         FROM inspections
         ORDER BY created_at DESC
     """
