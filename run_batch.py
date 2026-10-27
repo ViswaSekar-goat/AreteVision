@@ -3,6 +3,7 @@ import uuid
 from pathlib import Path
 
 from app.graph import graph
+from app.database import image_already_inspected
 
 
 # --------------------------------------------------
@@ -80,6 +81,25 @@ def inspect_image(image_path: Path, index: int, total: int):
     print(f"[{index}/{total}] Inspecting: {image_path.name}")
     print(f"Path: {image_path}")
     print("=" * 65)
+
+        # Skip images that already exist in MySQL.
+    try:
+        if image_already_inspected(str(image_path)):
+            print("Status: SKIPPED — already inspected in MySQL")
+
+            return {
+                "image": str(image_path),
+                "inspection_id": None,
+                "thread_id": None,
+                "status": "SKIPPED",
+                "error": None,
+            }
+
+    except Exception as error:
+        # Stop rather than risk processing duplicates when
+        # the database check cannot be completed.
+        print(f"Database check failed: {error}")
+        raise
 
     try:
         result = graph.invoke(
@@ -193,6 +213,11 @@ def main():
         for result in results
     )
 
+    skipped = sum(
+        result["status"] == "SKIPPED"
+        for result in results
+    )
+
     failed = sum(
         result["status"] == "ERROR"
         for result in results
@@ -204,6 +229,7 @@ def main():
     print(f"Total images:       {total}")
     print(f"Completed:          {completed}")
     print(f"Pending review:     {pending}")
+    print(f"Skipped:            {skipped}")
     print(f"Failed:             {failed}")
     print("=" * 65)
 

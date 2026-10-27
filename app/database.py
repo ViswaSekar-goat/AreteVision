@@ -521,3 +521,49 @@ def get_thread_id_for_inspection(inspection_id: str):
     connection.close()
 
     return result[0] if result else None
+
+
+def image_already_inspected(image_path: str) -> bool:
+    """
+    Return True if this image already has an inspection record.
+    Checks both absolute and project-relative paths.
+    """
+
+    from pathlib import Path
+
+    absolute_path = str(Path(image_path).resolve())
+
+    try:
+        relative_path = str(
+            Path(absolute_path).relative_to(Path.cwd().resolve())
+        )
+    except ValueError:
+        relative_path = absolute_path
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_connection()
+        cursor = connection.cursor()
+
+        query = """
+            SELECT 1
+            FROM inspections
+            WHERE image_path IN (%s, %s)
+            LIMIT 1
+        """
+
+        cursor.execute(
+            query,
+            (absolute_path, relative_path),
+        )
+
+        return cursor.fetchone() is not None
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None:
+            connection.close()
