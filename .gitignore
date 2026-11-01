@@ -23,3 +23,5 @@ dataset_analysis_outputs
 
 todo
 test.py
+__pycache__/
+*.py[cod]
