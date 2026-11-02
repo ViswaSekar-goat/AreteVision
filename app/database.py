@@ -1,11 +1,14 @@
 import mysql.connector
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 
 def get_connection():
     return mysql.connector.connect(
         host="localhost",
-        user="forgesight_admin",
-        password="admin",
+        user= os.getenv("DB_ADMIN"),
+        password= os.getenv("DB_PASSWORD"),
         database="forgesight",
     )
 

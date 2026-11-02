@@ -1,4 +1,4 @@
-path: /home/ghost/ForgeSight/data/NEU-DET
+path: /home/ghost/AreteVision/data/NEU-DET
 
 train: train/images
 val: validation/images
