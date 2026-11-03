@@ -1,7 +1,7 @@
 from ultralytics import YOLO
 
 
-model = YOLO("yolo26n.pt")
+model = YOLO("yolo26m.pt")
 
 
 
@@ -10,7 +10,7 @@ model.train(
     data="data/NEU-DET/data.yaml",
 
     epochs=30,
-    imgsz=224,
+    imgsz=640,
     batch=8,
 
     device=0,
@@ -20,5 +20,5 @@ model.train(
     amp=True,
 
     project="runs/forgeSight",
-    name="yolo26n_v1",
+    name="yolo26m_v1",
 )

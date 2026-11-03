@@ -95,5 +95,15 @@ so should check that as well
 
 difference between r-cnn and yolo , one stage amd 2 stage detectors
 
+study what map50 and map50-95
+our mAP@50–95: 37.32% is very low , so we should investigate , most probably due to 
+small model + training parameters 
 
+should improve the deterministic policy 
+
+right now LLM is not influencing any decisions , 
+
+can add multiple queues to work 
+
+learn YOLO architecture and how it works 
 
