@@ -282,7 +282,7 @@ def get_inspection_summary():
 
         query = """
             SELECT
-                COUNT(*) AS total_inspections,
+                COUNT(final_action) AS total_inspections,
 
                 SUM(
                     CASE
@@ -492,6 +492,9 @@ def get_detections_for_inspection(inspection_id: str):
 
 # ============================ pymysql =====================================================
 
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 
 def get_checkpoint_connection():
@@ -499,8 +502,8 @@ def get_checkpoint_connection():
 
     return pymysql.connect(
         host="localhost",
-        user="forgesight_admin",
-        password="admin",
+        user=os.getenv("DB_ADMIN"),
+        password=os.getenv("DB_PASSWORD"),
         database="forgesight",
         autocommit=True,
     )
