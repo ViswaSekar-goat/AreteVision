@@ -6,6 +6,7 @@ from langgraph.types import interrupt , Command
 from langchain_groq import ChatGroq
 from ultralytics import YOLO
 import os
+from app.llm_client import get_groq_llm
 from dotenv import load_dotenv
 import uuid
 
@@ -15,21 +16,18 @@ load_dotenv()
 from app.database import get_inspection_history , save_human_review , create_inspection, save_detection, get_all_defect_history , update_inspection_action
 
 
-
 # ============================================================
 # 1. LOAD MODELS
 # ============================================================
 
 # Our fine-tuned industrial defect detector
-model = YOLO("models/AreteVision_yolo.pt")
+model = YOLO("models/AreteVision_yolom.pt")
 
 
 # Groq LLM used by the Defect Analysis Agent
-llm = ChatGroq(
-    model="qwen/qwen3.8-27b",
-    api_key= os.getenv("GROQ_API_KEY") ,
-    temperature=0,
-)
+from app.llm_client import get_groq_llm
+
+llm = get_groq_llm()
 
 
 # ============================================================
@@ -206,7 +204,8 @@ def vision_node(state: InspectionState):
 # ----------------------------- DEFECT NODE ------------------------------------
 
 defect_analyzer = llm.with_structured_output(
-    DefectAnalysis
+    DefectAnalysis,
+    method="json_mode"
 )
 
 
@@ -247,6 +246,18 @@ YOLO = perception
 You = evidence interpretation
 Policy engine = final authority
 Human reviewer = safety override
+
+OUTPUT FORMAT:
+
+You must return your response as valid JSON.
+
+The response must conform exactly to the JSON schema
+provided for this agent.
+
+Return only the JSON object.
+Do not include markdown code fences.
+Do not include explanations outside the JSON object.
+
 """
 
     analysis = defect_analyzer.invoke(prompt)
@@ -257,7 +268,7 @@ Human reviewer = safety override
 
 # ----------------------------- QUALITY NODE ------------------------------------
 
-quality_assessor = llm.with_structured_output(QualityAssessment)
+quality_assessor = llm.with_structured_output(QualityAssessment,method="json_mode")
 
 def quality_assessment_node(state: InspectionState):
 
@@ -283,6 +294,18 @@ Rules:
 5. Clearly distinguish severity from certainty.
 6. Do not make an authoritative ACCEPT or REJECT decision.
 7. If evidence is insufficient, recommend HUMAN_REVIEW.
+
+OUTPUT FORMAT:
+
+You must return your response as valid JSON.
+
+The response must conform exactly to the JSON schema
+provided for this agent.
+
+Return only the JSON object.
+Do not include markdown code fences.
+Do not include explanations outside the JSON object.
+
 """
 
     assessment = quality_assessor.invoke(prompt)
@@ -293,7 +316,8 @@ Rules:
 
 # ----------------------------- DECISION NODE ------------------------------------
 decision_maker = llm.with_structured_output(
-    DecisionRecommendation
+    DecisionRecommendation,
+    method="json_mode"
 )
 
 def decision_node(state: InspectionState):
@@ -336,6 +360,17 @@ Rules:
     final authority.
 
 Return a technically defensible recommendation.
+
+OUTPUT FORMAT:
+
+You must return your response as valid JSON.
+
+The response must conform exactly to the JSON schema
+provided for this agent.
+
+Return only the JSON object.
+Do not include markdown code fences.
+Do not include explanations outside the JSON object.
 """
 
     recommendation = decision_maker.invoke(prompt)
@@ -508,7 +543,7 @@ def persist_policy_decision_node(state: InspectionState):
     return {}
 
 
-pattern_analyzer = llm.with_structured_output(PatternAnalysis)
+pattern_analyzer = llm.with_structured_output(PatternAnalysis,method="json_mode")
 def pattern_analysis_node(state: InspectionState):
     history = get_all_defect_history()
 
@@ -536,6 +571,18 @@ Rules:
 6. Do not make an ACCEPT or REJECT decision.
 7. If the historical evidence is weak, say so.
 8. Keep the analysis concise and technically defensible.
+
+OUTPUT FORMAT:
+
+You must return your response as valid JSON.
+
+The response must conform exactly to the JSON schema
+provided for this agent.
+
+Return only the JSON object.
+Do not include markdown code fences.
+Do not include explanations outside the JSON object.
+
 """
 
     analysis = pattern_analyzer.invoke(prompt)

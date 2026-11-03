@@ -25,3 +25,5 @@ todo
 test.py
 __pycache__/
 *.py[cod]
+
+runs/detect/runs/forgeSight/yolo26m_v1

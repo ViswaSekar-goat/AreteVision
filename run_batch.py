@@ -166,7 +166,7 @@ def main():
     parser.add_argument(
         "--folder",
         type=Path,
-        default=Path("data/NEU-DET/train/images"),
+        default=Path("data/NEU-DET/validation/images"),
         help="Folder containing images, including nested folders.",
     )
 
